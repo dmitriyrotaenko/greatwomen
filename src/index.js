@@ -1,67 +1,81 @@
-import { DOM } from './modules/DOM';
+import Loader from './modules/Loader';
+import ModalWoman from './modules/Modal';
 import Woman from './modules/Woman';
-import * as View from './modules/View';
 import './styles.css';
+import womenData from './data/womenInitialData';
 
-// set ID's to all the links
 
-View.renderLoader(document.body);
+const root = document.querySelector('.gallery-container');
+const loader = new Loader();
+// injects hidden modal into DOM
+const modal = new ModalWoman();
+
+
+
+loader.start();
+
+const womanTemplate = womanDetails => {
+  return `
+    <div data-id="${womanDetails.id}" class="gallery__item">
+      <img src="${womanDetails.image}" alt="${womanDetails.name}">
+      <div class="item__name">
+        <div class="item__name-link">
+          <a href="#" class="item__link">Подробнее</a>
+        </div>
+        <div class="item__name-name"><span>${womanDetails.name}</span></div>
+      </div>
+    </div>
+  `;
+}
+
+// populating initial data such as name and images
+
+for(let woman of womenData) {
+  root.insertAdjacentHTML('beforeend', womanTemplate(woman));
+}
+
 
 window.addEventListener('load', () => {
-  DOM.container.classList.add('gallery-container-visible');
-  View.clearLoader();
+  root.classList.add('gallery-container-visible');
+  loader.destroy();
 });
-
-const setIDs = links => {
-  let id = 0;
-  links.forEach(link => link.id = id++);
-}
-setIDs(DOM.links);
-
-
-
-// state to monitor current woman clicked
-const state = {};
-
-
 
 const renderInfo = async event => {
   event.preventDefault();
-  const link = event.target.closest('.item__link');
+  const element = event.target.closest('.gallery__item');
+  const link = element.querySelector('.item__link');
 
-  if(link) {
-    const id = parseInt(link.id);
-    const img = event.target.closest('.gallery__item').children.item(0).src;
+  if(event.target === link) {
+    const id = element.dataset.id;
+    const imgSrc = element.querySelector('img').src;
 
-    state.woman = new Woman(id);
+
+    let woman = new Woman(id);
 
     try {
 
-      // loader here
+      loader.start();
 
-      View.renderLoader(document.body);
+      const { name, info, quote } = await woman.getResults();
 
-      await state.woman.getResults();
+      loader.destroy();
 
-      View.clearLoader(document.body);
+      modal.show();
 
-      View.showModal();
-
-
-      DOM.name.innerHTML = state.woman.name;
-      DOM.info.innerHTML = state.woman.info;
-      DOM.quote.innerHTML = state.woman.quote;
-      DOM.quoteContainer.style.backgroundImage = `url('${img}')`; 
+      modal.populate({
+        name,
+        info,
+        quote,
+        imgSrc
+      });
 
     } catch(e) {
+      console.log(e);
       alert('Ooops there\'s an error. Try again (:');
+      loader.destroy();
     }
   } 
 }
 
 
-DOM.container.addEventListener('click', renderInfo);
-DOM.modal.addEventListener('click', ({target}) => {
-  if(target === DOM.modal) View.hideModal();
-})
-DOM.close.addEventListener('click', View.hideModal);
+root.addEventListener('click', renderInfo);

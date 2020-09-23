@@ -30,7 +30,6 @@
     "webpack-dev-server": "^3.8.2",
     "webpack-merge": "^4.2.2"
   },
-
   "postcss": {
     "plugins": {
       "autoprefixer": {}
